@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuel Detector AI</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; }
+  video, img { width: 100%; border-radius: 10px; }
+  button { padding: 12px; border-radius: 10px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h2>ตรวจประเภทเชื้อเพลิงของรถ (AI)</h2>
+<video id="video" autoplay playsinline></video>
+<button id="capture">จับภาพและวิเคราะห์</button>
+
+<p id="result"></p>
+
+<script>
+const OPENAI_API_KEY = "YOUR_API_KEY_HERE";
+
+async function startCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  document.getElementById("video").srcObject = stream;
+}
+startCamera();
+
+document.getElementById("capture").onclick = async () => {
+  const video = document.getElementById("video");
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+
+  const base64Image = canvas.toDataURL("image/jpeg").split(",")[1];
+
+  document.getElementById("result").innerHTML = "กำลังวิเคราะห์...";
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + OPENAI_API_KEY
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      input: "จากภาพนี้ รถมีแนวโน้มใช้เชื้อเพลิงชนิดใด (ดีเซล หรือ เบนซิน) ตอบเป็นคำเดียวเท่านั้น",
+      image: [{ format: "jpeg", b64_json: base64Image }]
+    })
+  });
+
+  const data = await response.json();
+  document.getElementById("result").innerHTML = "<b>ผลลัพธ์:</b> " + data.output[0].content[0].text;
+};
+</script>
+
+</body>
+</html>
